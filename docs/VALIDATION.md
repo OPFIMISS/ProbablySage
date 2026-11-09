@@ -1,0 +1,30 @@
+# 0.1.0 验证范围
+
+日期：2026-11-09。Windows，本地Python 3.10，MCP SDK 2.3.0，Tree-sitter 0.25.2／C# grammar 0.23.5。
+
+## 已执行
+
+- 从源码可编辑安装成功，固定依赖可导入。
+- 本机实际Assembly-CSharp与Assembly-CSharp-firstpass反编译并建立索引。
+- 官方文档提交：`ae161038c6cfed6725f66cfbc5d6b05406975068`；来自dragonpan2/probably-stolen-modding。
+- 本机快照：1239个文件、27629个声明、153301条语法引用。数字取决于用户安装版本，不是工具保证的固定数量。
+- 有7处反编译C#解析错误；doctor明确报告。语法索引可能遗漏部分结构，文本索引仍保留相应文件。未把它们算成完整语义分析。
+- 真实stdio MCP子进程连接成功，发现8个工具；查询ModHelper.ReadModDataFileText并读取实际实现；查询对应官方文档和TryAcceptAll的原版调用位置。
+- 5项针对性检查通过：重载／调用证据、未知ID与分页边界、源码变化后快照保持不变、新增文件与失败重建保留旧索引、真实stdio工具调用。
+
+## 未覆盖
+
+- Unity游戏内功能、UI像素与命中、MOD运行和存档兼容；本项目不执行这些测试。
+- 完整C#符号绑定、动态分派、反射／委托调用图。
+- 所有MCP客户端的安装注册；本轮验证了SDK客户端，未自动修改用户的客户端配置。
+- 未验证Linux/macOS、全新机器缺失SDK时的安装过程、所有游戏历史版本。
+- 依赖的完整传递版本没有锁定；直接依赖已固定。安装失败时保留错误，不应伪报成功。
+
+重现：
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+.\.venv\Scripts\python.exe scripts/smoke.py
+```
+
+索引和游戏源码仅留在本机，未随仓库发布。

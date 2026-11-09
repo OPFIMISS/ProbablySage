@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "probablysage": {
+      "command": "C:/Projects/ProbablySage/.venv/Scripts/python.exe",
+      "args": [
+        "-m",
+        "probablysage",
+        "--data",
+        "C:/Users/YOUR_NAME/.probablysage",
+        "serve"
+      ]
+    }
+  }
+}
