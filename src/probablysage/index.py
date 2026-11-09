@@ -63,7 +63,7 @@ def ensure_ilspy(data: Path, supplied: str | None) -> str:
     tool = data / "tools" / ("ilspycmd.exe" if os.name == "nt" else "ilspycmd")
     if not tool.is_file():
         if not shutil.which("dotnet"):
-            raise ValueError("Install the .NET 8+ SDK, or supply --ilspy with a working ilspycmd")
+            raise ValueError("Install the .NET 10 SDK, or supply --ilspy with a working ilspycmd")
         subprocess.run(
             ["dotnet", "tool", "install", "ilspycmd", "--tool-path", str(tool.parent),
              "--version", "11.0.0.9375"], check=True, timeout=180,

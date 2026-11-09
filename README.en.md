@@ -6,7 +6,7 @@ Give a local tool-enabled Agent:
 
 > Install this MCP project: https://github.com/OPFIMISS/ProbablySage . My game directory is `D:/Steam/steamapps/common/Probably Stolen`. Read README.md and docs/AGENT_GUIDE.zh-CN.md. Run setup, merge only the generated probablysage client entry, reconnect, call doctor, and search/read one real method. Preserve other settings. Do not launch the game or modify saves.
 
-Requirements: Python 3.10+, Git, an installed game, and a working ILSpy/.NET SDK. A .NET 10 SDK is recommended for the pinned ILSpy tool.
+Requirements: Python 3.10+, Git, an installed game, and the .NET 10 SDK. The pinned ILSpy tool targets .NET 10; alternatively supply an already working ILSpy executable with `--ilspy`.
 
 ```powershell
 git clone https://github.com/OPFIMISS/ProbablySage.git C:/Projects/ProbablySage

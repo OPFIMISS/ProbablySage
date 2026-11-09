@@ -18,7 +18,7 @@
 
 ## 本地快捷部署
 
-需要 Python 3.10+、Git、正版已安装游戏，以及能运行 ILSpy 的 .NET SDK（建议 .NET 10 SDK，或自行提供可运行的 `ilspycmd`）。
+需要 Python 3.10+、Git、正版已安装游戏及 .NET 10 SDK。自动安装的固定版 ILSpy 需要 .NET 10 运行时；已有其他可运行的 `ilspycmd` 时可自行通过 `--ilspy` 提供。
 
 ```powershell
 git clone https://github.com/OPFIMISS/ProbablySage.git C:/Projects/ProbablySage
