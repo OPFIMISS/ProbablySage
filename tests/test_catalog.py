@@ -18,6 +18,8 @@ public class Cabinet {
     public int Accept(int count) { return count; }
     public bool Accept(string name) { return name.Length > 0; }
     public int Trade() { return Accept(Stock); }
+    public T Lookup<T>() { return default(T); }
+    public T Use<T>(Cabinet other) { other.Lookup<int>(); return Lookup<T>(); }
 }
 """
 
@@ -64,6 +66,44 @@ class EvidenceTests(unittest.TestCase):
         self.assertEqual(page["next_offset"], 1)
         self.assertEqual(len(self.catalog.symbols("Accept", limit=1, offset=1)["matches"]), 1)
 
+    def test_generic_calls_keep_short_names(self):
+        refs = self.catalog.references("Lookup")["references"]
+        self.assertEqual(len(refs), 2)
+        self.assertTrue(all("<" in hit["expression"] for hit in refs))
+        self.assertTrue(all(hit["enclosing_symbol"] == "Example.Cabinet.Use" for hit in refs))
+
+    def test_parser_issues_keep_text_and_locations(self):
+        broken = self.source / "Broken.cs"
+        broken.write_text("class Broken {\n void Bad( { value. }\n", encoding="utf-8")
+        build(self.data, None, [self.source], skip_docs=True)
+        diagnostics = self.catalog.doctor()
+        self.assertGreater(diagnostics["parser_errors"], 0)
+        issue = diagnostics["parser_issues"]["issues"][0]
+        self.assertEqual(issue["path"], "Broken.cs")
+        self.assertGreaterEqual(issue["start"], 1)
+        read = self.catalog.read(issue["file_id"])
+        self.assertTrue(read["parser_issues"]["issues"])
+        self.assertTrue(any("value." in line["text"] for line in read["lines"]))
+
+    def test_practice_is_queryable_and_distinct_from_official(self):
+        practice = self.catalog.guide("ui")["practice"]
+        self.assertIn("不是官方", practice["content"])
+        found = self.catalog.search("PixelWindow", corpus="practice")["matches"]
+        self.assertTrue(found)
+        self.assertTrue(all(hit["corpus"] == "practice" for hit in found))
+        self.assertEqual(self.catalog.search("PixelWindow", corpus="official")["matches"], [])
+
+    def test_old_index_is_readable_but_requests_rebuild(self):
+        import sqlite3
+        with sqlite3.connect(self.catalog.database) as db:
+            meta = json.loads(db.execute("SELECT value FROM metadata").fetchone()[0])
+            meta["schema"] = 1
+            meta.pop("builder_version")
+            db.execute("UPDATE metadata SET value=?", (json.dumps(meta),))
+        self.assertTrue(self.catalog.doctor()["snapshot"]["index_upgrade_needed"])
+        self.assertFalse(self.catalog.doctor()["parser_issues"]["available"])
+        self.assertTrue(self.catalog.symbols("Accept")["matches"])
+
     def test_snapshot_staleness_and_immutability(self):
         self.assertFalse(self.catalog.doctor()["snapshot"]["stale"])
         self.file.write_text(FIXTURE + "// source changed\n", encoding="utf-8")
@@ -99,6 +139,10 @@ class EvidenceTests(unittest.TestCase):
                     "symbol_id": payload["matches"][0]["symbol_id"],
                 })
                 self.assertFalse(read.is_error)
+                guide = await client.call_tool("development_guide", {"topic": "ui"})
+                self.assertFalse(guide.is_error)
+                guide_text = next(c.text for c in guide.content if c.type == "text")
+                self.assertIn("practice", json.loads(guide_text))
 
         asyncio.run(run())
 

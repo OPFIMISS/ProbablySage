@@ -16,6 +16,9 @@ from datetime import datetime, timezone
 import tree_sitter_c_sharp
 from tree_sitter import Language, Parser
 
+from . import __version__
+
+PRACTICE_ROOT = Path(__file__).parent / "practice"
 OFFICIAL_REPO = "dragonpan2/probably-stolen-modding"
 OFFICIAL_FILES = (
     "README.zh-CN.md", "ModdingGuide.zh-CN.md", "APIChanges.zh-CN.md",
@@ -86,6 +89,9 @@ def _schema(db: sqlite3.Connection):
           file_id INTEGER, line INTEGER, name TEXT, expression TEXT, kind TEXT,
           caller_id INTEGER);
         CREATE INDEX refs_name ON refs(name);
+        CREATE TABLE parse_issues(
+          file_id INTEGER, start INTEGER, end INTEGER, kind TEXT, excerpt TEXT);
+        CREATE INDEX parse_issues_file ON parse_issues(file_id);
         CREATE TABLE metadata(key TEXT PRIMARY KEY, value TEXT);
     """)
 
@@ -97,6 +103,17 @@ def _text(node, raw: bytes) -> str:
 def _name(node, raw: bytes) -> str:
     child = node.child_by_field_name("name")
     return _text(child, raw) if child else ""
+
+
+def _member_name(node, raw: bytes) -> str:
+    name = node.child_by_field_name("name")
+    if name is not None:
+        return _member_name(name, raw)
+    if node.type == "generic_name":
+        identifier = next((c for c in node.named_children if c.type == "identifier"), None)
+        if identifier is not None:
+            return _text(identifier, raw)
+    return _text(node, raw)
 
 
 def index_file(db, parser, path: Path, corpus: str, origin: str, relative: str) -> int:
@@ -116,10 +133,20 @@ def index_file(db, parser, path: Path, corpus: str, origin: str, relative: str) 
     tree = parser.parse(raw)
     parse_errors = 0
 
-    def visit(node, names: tuple[str, ...], parent_id: int | None):
+    def report(node):
         nonlocal parse_errors
-        if node.type == "ERROR":
-            parse_errors += 1
+        parse_errors += 1
+        db.execute("INSERT INTO parse_issues VALUES(?,?,?,?,?)",
+                   (file_id, node.start_point.row + 1, node.end_point.row + 1,
+                    "missing:" + node.type if node.is_missing else "error",
+                    _text(node, raw)[:200]))
+
+    def visit(node, names: tuple[str, ...], parent_id: int | None):
+        if node.type == "ERROR" or node.is_missing:
+            report(node)
+        for child in node.children:
+            if child.is_missing and not child.is_named:
+                report(child)
         next_names, owner = names, parent_id
         if node.type == "compilation_unit":
             file_namespace = next((c for c in node.named_children
@@ -162,7 +189,7 @@ def index_file(db, parser, path: Path, corpus: str, origin: str, relative: str) 
         if node.type == "invocation_expression":
             function = node.child_by_field_name("function")
             if function:
-                name = _name(function, raw) or _text(function, raw)
+                name = _member_name(function, raw)
                 db.execute("INSERT INTO refs VALUES(?,?,?,?,?,?)",
                            (file_id, node.start_point.row + 1, name[:500],
                             _text(function, raw)[:1000], "call", parent_id))
@@ -170,7 +197,7 @@ def index_file(db, parser, path: Path, corpus: str, origin: str, relative: str) 
             node.parent is None or node.parent.type != "invocation_expression"
         ):
             db.execute("INSERT INTO refs VALUES(?,?,?,?,?,?)",
-                       (file_id, node.start_point.row + 1, _name(node, raw)[:500],
+                       (file_id, node.start_point.row + 1, _member_name(node, raw)[:500],
                         _text(node, raw)[:1000], "member_access", parent_id))
         for child in node.named_children:
             visit(child, next_names, owner)
@@ -230,6 +257,7 @@ def build(data: Path, game: Path | None, sources: list[Path],
             roots.append((docs, "official", f"https://github.com/{OFFICIAL_REPO}/blob/{commit}"))
         if not roots:
             raise ValueError("Supply --game or --source, or allow official document downloads")
+        roots.append((PRACTICE_ROOT, "practice", "ProbablySage community practice (not official API)"))
         parser = Parser(Language(tree_sitter_c_sharp.language()))
         database = work / "index.sqlite3"
         db = sqlite3.connect(database)
@@ -237,7 +265,7 @@ def build(data: Path, game: Path | None, sources: list[Path],
             _schema(db)
             errors = 0
             for root, corpus, origin in roots:
-                suffix = "*.md" if corpus == "official" else "*.cs"
+                suffix = "*.md" if corpus in {"official", "practice"} else "*.cs"
                 for path in sorted(root.rglob(suffix)):
                     resolved = path.resolve()
                     # Do not follow links outside the explicitly supplied source root.
@@ -255,11 +283,13 @@ def build(data: Path, game: Path | None, sources: list[Path],
             if game and not db.execute("SELECT 1 FROM symbols LIMIT 1").fetchone():
                 raise ValueError("Decompilation produced no C# declarations")
             metadata = {
-                "schema": 1, "built_utc": datetime.now(timezone.utc).isoformat(),
+                "schema": 2, "builder_version": __version__,
+                "built_utc": datetime.now(timezone.utc).isoformat(),
                 "game": str(game.resolve()) if game else None, "assemblies": assemblies,
                 "source_files": source_files, "source_roots": [str(p.resolve()) for p in sources],
                 "official_commit": commit, "official_repo": OFFICIAL_REPO,
                 "parse_errors": errors, "counts": counts,
+                "practice_files": [stamp(path) for path in sorted(PRACTICE_ROOT.glob("*.md"))],
                 "limitations": [
                     "References are syntax matches, not resolved C# dispatch or a complete call graph.",
                     "Decompiled C# can contain parser errors; read surrounding lines and check IL if ambiguous.",

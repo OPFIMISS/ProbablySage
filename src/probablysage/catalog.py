@@ -5,7 +5,8 @@ import json
 from pathlib import Path
 import sqlite3
 
-from .index import stamp
+from . import __version__
+from .index import PRACTICE_ROOT, stamp
 
 WORKFLOW = (
     "1. Call doctor; if stale, ask the local Agent to run setup again. "
@@ -25,6 +26,8 @@ TOPICS = {
     "hooks": ("生命周期 钩子", ["ModHook", "IMod", "ModHelper"]),
     "patching": ("反射 Harmony 能力", ["ModReflect", "ModHelper"]),
     "guns": ("枪械 顾客", ["StoreClientListGun", "GunOrderData", "Shotgun"]),
+    "scene": ("场景 相机", ["StoreUIManager", "StoreClientCounter", "GameGridInventory"]),
+    "highlight": ("库存 交互", ["Interactable", "GameSlotInventory", "HighlightManager"]),
 }
 
 
@@ -50,14 +53,14 @@ class Catalog:
         if not row:
             raise ValueError("Invalid index: rebuild with setup")
         result = json.loads(row[0])
-        if result.get("schema") != 1:
+        if result.get("schema") not in {1, 2}:
             raise ValueError("Unsupported index version: rebuild with setup")
         return result
 
     @staticmethod
     def status(meta: dict) -> dict:
         changed = []
-        for before in meta["assemblies"] + meta["source_files"]:
+        for before in meta["assemblies"] + meta["source_files"] + meta.get("practice_files", []):
             try:
                 if stamp(Path(before["path"])) != before:
                     changed.append(before["path"])
@@ -77,8 +80,10 @@ class Catalog:
                 resolved = path.resolve()
                 if resolved.is_relative_to(directory.resolve()) and str(resolved) not in expected:
                     changed.append(str(resolved))
+        rebuild = meta.get("schema", 1) < 2 or meta.get("builder_version") != __version__
         return {
-            "stale": bool(changed), "changed": changed[:20],
+            "stale": bool(changed) or rebuild, "changed": changed[:20],
+            "index_upgrade_needed": rebuild,
             "has_installed_game_evidence": bool(meta["assemblies"]),
             "built_utc": meta["built_utc"], "official_commit": meta["official_commit"],
             "official_freshness": "Pinned at setup; not checked online during tool calls",
@@ -91,8 +96,9 @@ class Catalog:
         with self.open() as db:
             meta = self.metadata(db)
             return self.response(
-                db, version="0.1.0", counts=meta["counts"],
+                db, version=__version__, counts=meta["counts"],
                 assemblies=meta["assemblies"], parser_errors=meta["parse_errors"],
+                parser_issues=self.parse_issues(db),
                 official_repository="https://github.com/" + meta["official_repo"],
                 limitations=meta["limitations"], workflow=WORKFLOW,
                 next_step="Search official docs, then search_symbols. Re-run setup after a game update.",
@@ -124,8 +130,8 @@ class Catalog:
 
     def search(self, query: str, corpus: str = "all", limit: int = 10, offset: int = 0):
         self.bounds(query, limit, offset)
-        if corpus not in {"all", "game", "source", "official"}:
-            raise ValueError("corpus must be all, game, source or official")
+        if corpus not in {"all", "game", "source", "official", "practice"}:
+            raise ValueError("corpus must be all, game, source, official or practice")
         with self.open() as db:
             rows = db.execute("""
                 SELECT l.file_id,l.line,l.text,f.path,f.corpus,f.origin
@@ -160,7 +166,22 @@ class Catalog:
             lines.append({"line": row["line"], "text": text})
             used += len(text)
         next_line = lines[-1]["line"] + 1 if lines and len(rows) > len(lines) else None
-        return {"file": dict(file), "lines": lines, "next_line": next_line}
+        return {"file": dict(file), "lines": lines, "next_line": next_line,
+                "parser_issues": self.parse_issues(db, file_id)}
+
+    def parse_issues(self, db, file_id: int | None = None):
+        if self.metadata(db)["schema"] < 2:
+            return {"available": False, "next_step": "Rebuild the old index for issue locations."}
+        condition = "" if file_id is None else "WHERE p.file_id=?"
+        params = () if file_id is None else (file_id,)
+        rows = db.execute(
+            "SELECT p.file_id,f.path,f.origin,p.start,p.end,p.kind,p.excerpt "
+            "FROM parse_issues p JOIN files f ON f.id=p.file_id " + condition +
+            " ORDER BY p.file_id,p.start LIMIT 21", params,
+        ).fetchall()
+        return {"available": True, "issues": [dict(row) for row in rows[:20]],
+                "more": len(rows) > 20,
+                "next_step": "Use read_lines at the reported location; text remains available."}
 
     def read(self, file_id: int, start_line: int = 1, count: int = 60):
         with self.open() as db:
@@ -203,7 +224,7 @@ class Catalog:
             return {"topics": list(TOPICS), "workflow": WORKFLOW,
                     "next_step": "Choose one topic exactly as listed."}
         terms, names = TOPICS[topic]
-        return {
+        result = {
             "topic": topic, "workflow": WORKFLOW,
             "official_search_terms": terms.split(),
             "symbol_search_terms": names,
@@ -218,3 +239,10 @@ class Catalog:
                 "Never report a successful build as successful gameplay verification.",
             ],
         }
+        if topic in {"ui", "scene", "inventory", "highlight"}:
+            result["practice"] = {
+                "origin": "ProbablySage community practice, not official API or a visual test pass",
+                "path": "practice/native-ui.md",
+                "content": (PRACTICE_ROOT / "native-ui.md").read_text(encoding="utf-8"),
+            }
+        return result

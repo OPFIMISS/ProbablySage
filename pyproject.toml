@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "probablysage"
-version = "0.1.0"
+version = "0.1.1"
 description = "Local Probably Stolen source and official modding documentation MCP. Quick start: ask your Agent to install https://github.com/OPFIMISS/ProbablySage"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,3 +19,6 @@ probablysage = "probablysage.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+probablysage = ["practice/*.md"]

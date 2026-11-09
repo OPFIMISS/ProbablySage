@@ -30,6 +30,10 @@ Tools: `doctor`, `search_symbols`, `read_symbol`, `search_source`, `read_lines`,
 
 Start with `doctor`, search official docs, discover a symbol ID, read its implementation, then inspect callers and guards. References are syntactic matches, not resolved dispatch. Results include origins, line numbers, freshness and pagination. Rebuild after game updates.
 
-**0.1.0 development preview.** No game runtime Agent, headless testing, arbitrary file access or code execution. No game source/binaries/assets are distributed or uploaded by the server. Your chosen MCP client may transmit returned context to its model provider. Freshness uses size/mtime rather than hashes.
+**0.1.1 development preview.** Generic calls such as `GetComponent<T>()` are now discoverable by their short member name. Parser issues include file IDs and line locations. Rebuild the index after upgrading.
+
+`development_guide(topic="ui")` also returns the bundled [native UI integration practice](src/probablysage/practice/native-ui.md), covering original tablet frames, scene anchoring, inventory alignment, native highlighting and lifecycle pitfalls. Topics `scene`, `inventory` and `highlight` include it too. Search with `corpus="practice"`; community practice is explicitly distinguished from official documentation and installed game evidence.
+
+No game runtime Agent, headless testing, arbitrary file access or code execution. No game source/binaries/assets are distributed or uploaded by the server. Your chosen MCP client may transmit returned context to its model provider. Freshness uses size/mtime rather than hashes.
 
 Official API support and restrictions: [probably-stolen-modding](https://github.com/dragonpan2/probably-stolen-modding). Actual installed signatures take precedence over assumptions. Inspired by [RimSage](https://github.com/realloon/RimSage); independently implemented using the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk).

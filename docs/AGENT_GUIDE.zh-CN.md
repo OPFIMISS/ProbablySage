@@ -28,6 +28,10 @@
 7. 使用 `read_symbol` 或 `read_lines` 阅读调用者前后的合法性检查、状态、所有权、返回值和保存行为。
 8. 有证据后再写 MOD。编译引用当前安装的程序集，按官方规则扫描；游戏内效果另行验证。
 
+涉及原生平板、墙面终端、展示柜或高亮，先调用`development_guide(topic="ui")`，直接读取返回的`practice.content`。`scene`、`inventory`、`highlight`也会返回融合参考。它是项目经验，不是官方接口承诺；再按其中的原生类型查本机签名。
+
+需要找具体经验时，使用`search_source(query="输入焦点", corpus="practice")`等。不要把practice命中解释成官方文档或游戏本体实现。
+
 ## 具体例子
 
 用户：“做一个能放物品的展示柜。”
@@ -56,6 +60,8 @@ read_lines(file_id=<返回的文件ID>, start_line=<调用行前10行>, count=40
 | next_line 不为 null | 用同一个 file_id 和 next_line 继续读取，尤其是长方法 |
 | stale 为 true | 先重建；若仅研究旧版本，明确写出旧版本边界 |
 | parser_errors 大于零 | AST索引可能遗漏；退回文本搜索和上下文，必要时人工核对IL |
+| parser_issues 有内容 | 按其中的file_id／start调用read_lines；原始文本未被删改或“修正” |
+| index_upgrade_needed 为 true | 工具升级过，旧索引还未重建；重跑setup后再用新版结果 |
 | 只有官方文档、无程序集 | 不能保证本机提供文档中的接口 |
 | 查询到 SteamManager/加载器等 | 可理解启动行为，不代表允许打补丁；先读官方限制 |
 | 编译或扫描通过 | 只汇报对应结果，不等于游戏内功能通过 |
@@ -67,3 +73,5 @@ read_lines(file_id=<返回的文件ID>, start_line=<调用行前10行>, count=40
 - 不通过修改信任、加载器或 Steam 保护来让代码运行。
 - 不把游戏源码上传到 GitHub、在线索引或公共日志。
 - 不声称查询工具可以保证没有 BUG。
+
+0.1.1起，`find_references(member="GetComponent")`会包含`GetComponent<T>()`等泛型调用。仍应读取接收对象及上下文，不能把同名调用视作已完成类型绑定。

@@ -4,13 +4,14 @@ from typing import Literal
 from mcp.server import MCPServer
 from mcp.types import ToolAnnotations
 
+from . import __version__
 from .catalog import Catalog, WORKFLOW
 
 
 def create_server(data: Path) -> MCPServer:
     catalog = Catalog(data)
     server = MCPServer(
-        "ProbablySage", version="0.1.0",
+        "ProbablySage", version=__version__,
         instructions="Local Probably Stolen source evidence. " + WORKFLOW,
     )
     readonly = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
@@ -33,7 +34,7 @@ def create_server(data: Path) -> MCPServer:
         return catalog.symbol(symbol_id, count)
 
     @server.tool(annotations=readonly)
-    def search_source(query: str, corpus: Literal["all", "game", "source", "official"] = "all",
+    def search_source(query: str, corpus: Literal["all", "game", "source", "official", "practice"] = "all",
                       limit: int = 10, offset: int = 0) -> dict:
         """Literal text search, NOT regex. Search item IDs, hooks, tags or code fragments.
         Returns file_id and line; then read_lines for guards and surrounding code."""
@@ -60,7 +61,8 @@ def create_server(data: Path) -> MCPServer:
     @server.tool(annotations=readonly)
     def development_guide(topic: str = "hooks") -> dict:
         """Get step-by-step research steps. Topics: items, inventory, dialogue, ui, save,
-        hooks, patching, guns. Suggestions are not fabricated API guarantees."""
+        hooks, patching, guns, scene, highlight. UI/scene/inventory/highlight return the
+        built-in native UI integration recipe, distinguished from official documentation."""
         return catalog.guide(topic)
 
     return server

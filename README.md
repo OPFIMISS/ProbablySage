@@ -12,7 +12,7 @@
 
 这段话是给 Agent 的安装指令，不是点击即安装链接。Agent 需要文件访问和命令执行权限，客户端需要支持 MCP。
 
-**状态：0.1.0 开发预览。** 本地查询工具，不包含游戏内 Agent、后台测试、多开或无头运行。它能提供代码证据，不能保证 MOD 没有 BUG。
+**状态：0.1.1 开发预览。** 新增可直接查询的原生UI融合实践，修复泛型调用漏查，解析问题提供文件和行号。升级后重建索引。本地查询工具，不包含游戏内 Agent、后台测试、多开或无头运行。它能提供代码证据，不能保证 MOD 没有 BUG。
 
 [English](README.en.md) · [Agent 分步指南](docs/AGENT_GUIDE.zh-CN.md) · [官方 MOD 开发文档](https://github.com/dragonpan2/probably-stolen-modding)
 
@@ -79,14 +79,14 @@ python -m venv .venv
 
 | 工具 | 用途 |
 |---|---|
-| `doctor` | 首先检查索引覆盖、程序集是否变化、官方文档提交及限制 |
+| `doctor` | 首先检查索引覆盖、程序集／索引版本是否变化、解析问题位置、官方文档提交及限制 |
 | `search_symbols` | 搜索类型、方法、重载、属性、字段，返回真实签名和 ID |
 | `read_symbol` | 按返回的 ID 读取声明和实现 |
 | `search_source` | 按字面文本查询物品 ID、标签、钩子或任意代码片段 |
 | `read_lines` | 按已发现的文件 ID 和行号读取上下文，支持继续读取 |
 | `find_references` | 查询同名语法调用／成员访问，定位调用者及前置检查 |
 | `search_official_docs` | 查询本地缓存的官方指南、迁移说明和发布规则 |
-| `development_guide` | 按物品、库存、对话、UI、存档等主题给出固定研究步骤 |
+| `development_guide` | 按物品、库存、对话、UI、场景、高亮等主题给出研究步骤；UI相关主题直接返回融合实践 |
 
 每条证据带来源文件、行号、程序集或官方提交；分页结果给出下一步参数。工具名和参数保持简单，返回下一步动作，适合需要明确操作步骤的模型。详见 [Agent 指南](docs/AGENT_GUIDE.zh-CN.md)。
 
@@ -94,11 +94,34 @@ python -m venv .venv
 
 `find_references` 是**语法匹配**，不是完整语义调用图：同名方法可能属于不同对象，反射和委托调用可能遗漏。反编译代码出现语法错误时会报告数量，应结合文本上下文及必要的 IL 核对。
 
+## 原生 UI 与场景融合
+
+新增 [原生 UI 融合实践](src/probablysage/practice/native-ui.md)，随工具安装，AI不必另外寻找本机Skill。内容包括：
+
+- 克隆原生平板、复用字体与控件、清理输入焦点及关闭回调。
+- 顾客终端的像素、透视、场景锚点、透明画布裁切与局部点击。
+- 展示柜外观和真实库存分离，保持原生格子尺度及拖放逻辑。
+- 区分精灵Alpha轮廓、单槽矩形边框、库存逐格提示。
+- 常驻窗口拦截Enter、重复点击、共享资源清理、库存扩格读档等踩坑。
+
+直接通过MCP读取：
+
+```text
+development_guide(topic="ui")
+development_guide(topic="scene")
+development_guide(topic="highlight")
+search_source(query="PixelWindow", corpus="practice")
+```
+
+`practice`是项目实践，`official`是官方文档，`game`是本机游戏源码。工具明确区分三者；实践里的项目辅助类和历史坐标不应被当作全游戏通用API或完美视觉保证。
+
 ## 更新与其他源码
 
 游戏更新后，重新运行原来的部署／setup 命令。重建成功才替换旧索引；失败保留旧快照，`doctor` 会标记已变化的程序集。新索引的数字 ID 不能沿用。
 
 官方文档在建立索引时解析到具体提交并下载；日常查询不联网，也不会自动声称文档仍是最新。
+
+升级ProbablySage后也需要重建。`doctor`的`index_upgrade_needed`会标出旧版索引，旧结果仍可读取，但`stale=true`，不能当作新版索引证据。解析问题现在会给出`file_id`、文件、行号及类型；`read_lines`保留原始文本，并附当前文件的诊断。
 
 可以加入**你有权读取的** MOD 源码：
 

@@ -36,6 +36,15 @@ async def run(data: Path):
         assert docs["matches"], "Official docs are missing"
         references = payload(await client.call_tool("find_references", {"member": "TryAcceptAll", "limit": 3}))
         assert references["references"], "No game call evidence"
+        generic = payload(await client.call_tool("find_references", {"member": "GetComponent", "limit": 50}))
+        assert any("GetComponent<" in hit["expression"] for hit in generic["references"]), "Generic call lookup failed"
+        guide = payload(await client.call_tool("development_guide", {"topic": "ui"}))
+        assert "EndOfDayTabletFrame" in guide["practice"]["content"], "Native UI practice is unavailable"
+        practice = payload(await client.call_tool("search_source", {
+            "query": "PixelWindow", "corpus": "practice",
+        }))
+        assert practice["matches"], "Bundled practice was not indexed"
+        assert state["parser_issues"]["available"], "Parser issue locations are unavailable"
         print(json.dumps({
             "transport": "stdio", "tools": len(tools.tools),
             "files": state["counts"]["files"], "symbols": state["counts"]["symbols"],
@@ -44,6 +53,9 @@ async def run(data: Path):
             "signature": symbol["signature"],
             "read_implementation": True, "official_doc_hits": len(docs["matches"]),
             "game_reference_hits": len(references["references"]),
+            "generic_reference_hits": len(generic["references"]),
+            "ui_practice_available": True,
+            "parser_locations": len(state["parser_issues"]["issues"]),
         }, ensure_ascii=False, indent=2))
 
 
