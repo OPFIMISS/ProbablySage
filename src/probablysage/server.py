@@ -61,8 +61,9 @@ def create_server(data: Path) -> MCPServer:
     @server.tool(annotations=readonly)
     def development_guide(topic: str = "hooks") -> dict:
         """Get step-by-step research steps. Topics: items, inventory, dialogue, ui, save,
-        hooks, patching, guns, scene, highlight. UI/scene/inventory/highlight return the
-        built-in native UI integration recipe, distinguished from official documentation."""
+        hooks, patching, guns, scene, highlight, network. UI/scene/inventory/highlight
+        return native UI practice; network returns upgrade lifecycle and effect practice.
+        Community practice is distinguished from official documentation."""
         return catalog.guide(topic)
 
     return server

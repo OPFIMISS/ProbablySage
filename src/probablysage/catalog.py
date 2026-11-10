@@ -28,6 +28,7 @@ TOPICS = {
     "guns": ("枪械 顾客", ["StoreClientListGun", "GunOrderData", "Shotgun"]),
     "scene": ("场景 相机", ["StoreUIManager", "StoreClientCounter", "GameGridInventory"]),
     "highlight": ("库存 交互", ["Interactable", "GameSlotInventory", "HighlightManager"]),
+    "network": ("AddNetworkUpgrade 人脉 升级 生命周期", ["ModHelper", "NetworkUpgrade", "ModHook"]),
 }
 
 
@@ -244,5 +245,11 @@ class Catalog:
                 "origin": "ProbablySage community practice, not official API or a visual test pass",
                 "path": "practice/native-ui.md",
                 "content": (PRACTICE_ROOT / "native-ui.md").read_text(encoding="utf-8"),
+            }
+        if topic == "network":
+            result["practice"] = {
+                "origin": "ProbablySage community practice; card visibility confirmed, effect fix pending gameplay verification",
+                "path": "practice/network-upgrades.md",
+                "content": (PRACTICE_ROOT / "network-upgrades.md").read_text(encoding="utf-8"),
             }
         return result

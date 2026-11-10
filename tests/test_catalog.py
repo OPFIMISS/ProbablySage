@@ -86,12 +86,14 @@ class EvidenceTests(unittest.TestCase):
         self.assertTrue(any("value." in line["text"] for line in read["lines"]))
 
     def test_practice_is_queryable_and_distinct_from_official(self):
-        practice = self.catalog.guide("ui")["practice"]
-        self.assertIn("不是官方", practice["content"])
-        found = self.catalog.search("PixelWindow", corpus="practice")["matches"]
-        self.assertTrue(found)
-        self.assertTrue(all(hit["corpus"] == "practice" for hit in found))
-        self.assertEqual(self.catalog.search("PixelWindow", corpus="official")["matches"], [])
+        for topic, query in (("ui", "PixelWindow"), ("network", "RegisterModUpgrade")):
+            with self.subTest(topic=topic):
+                practice = self.catalog.guide(topic)["practice"]
+                self.assertIn("不是官方", practice["content"])
+                found = self.catalog.search(query, corpus="practice")["matches"]
+                self.assertTrue(found)
+                self.assertTrue(all(hit["corpus"] == "practice" for hit in found))
+                self.assertEqual(self.catalog.search(query, corpus="official")["matches"], [])
 
     def test_old_index_is_readable_but_requests_rebuild(self):
         import sqlite3

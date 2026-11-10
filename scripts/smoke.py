@@ -44,6 +44,12 @@ async def run(data: Path):
             "query": "PixelWindow", "corpus": "practice",
         }))
         assert practice["matches"], "Bundled practice was not indexed"
+        network = payload(await client.call_tool("development_guide", {"topic": "network"}))
+        assert "RegisterModUpgrade" in network["practice"]["content"], "Network practice is unavailable"
+        network_search = payload(await client.call_tool("search_source", {
+            "query": "RegisterModUpgrade", "corpus": "practice",
+        }))
+        assert network_search["matches"], "Network practice was not indexed"
         assert state["parser_issues"]["available"], "Parser issue locations are unavailable"
         print(json.dumps({
             "transport": "stdio", "tools": len(tools.tools),
@@ -55,6 +61,7 @@ async def run(data: Path):
             "game_reference_hits": len(references["references"]),
             "generic_reference_hits": len(generic["references"]),
             "ui_practice_available": True,
+            "network_practice_available": True,
             "parser_locations": len(state["parser_issues"]["issues"]),
         }, ensure_ascii=False, indent=2))
 

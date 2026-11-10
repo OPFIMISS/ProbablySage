@@ -12,7 +12,7 @@
 
 这段话是给 Agent 的安装指令，不是点击即安装链接。Agent 需要文件访问和命令执行权限，客户端需要支持 MCP。
 
-**状态：0.1.1 开发预览。** 新增可直接查询的原生UI融合实践，修复泛型调用漏查，解析问题提供文件和行号。升级后重建索引。本地查询工具，不包含游戏内 Agent、后台测试、多开或无头运行。它能提供代码证据，不能保证 MOD 没有 BUG。
+**状态：0.1.2 开发预览。** 新增王尔德人脉升级实践与可复用Skill，覆盖注册时机、即时购买效果、调价和存档恢复。保留原生UI融合实践、泛型引用与解析诊断。升级后重建索引。本地查询工具，不包含游戏内 Agent、后台测试、多开或无头运行。它能提供代码证据，不能保证 MOD 没有 BUG。
 
 [English](README.en.md) · [Agent 分步指南](docs/AGENT_GUIDE.zh-CN.md) · [官方 MOD 开发文档](https://github.com/dragonpan2/probably-stolen-modding)
 
@@ -86,7 +86,7 @@ python -m venv .venv
 | `read_lines` | 按已发现的文件 ID 和行号读取上下文，支持继续读取 |
 | `find_references` | 查询同名语法调用／成员访问，定位调用者及前置检查 |
 | `search_official_docs` | 查询本地缓存的官方指南、迁移说明和发布规则 |
-| `development_guide` | 按物品、库存、对话、UI、场景、高亮等主题给出研究步骤；UI相关主题直接返回融合实践 |
+| `development_guide` | 按物品、库存、对话、UI、场景、高亮、人脉等主题给出研究步骤；UI与network主题直接返回对应实践 |
 
 每条证据带来源文件、行号、程序集或官方提交；分页结果给出下一步参数。工具名和参数保持简单，返回下一步动作，适合需要明确操作步骤的模型。详见 [Agent 指南](docs/AGENT_GUIDE.zh-CN.md)。
 
@@ -114,6 +114,14 @@ search_source(query="PixelWindow", corpus="practice")
 ```
 
 `practice`是项目实践，`official`是官方文档，`game`是本机游戏源码。工具明确区分三者；实践里的项目辅助类和历史坐标不应被当作全游戏通用API或完美视觉保证。
+
+## 原生人脉升级
+
+调用`development_guide(topic="network")`直接读取[新增人脉升级实践](src/probablysage/practice/network-upgrades.md)，或用`search_source(query="RegisterModUpgrade", corpus="practice")`查询已重建索引。
+
+记录本机主菜单过早注册触发空引用、载入／新局注册、原生分组与前置链、购买立即应用、运行记录调价，以及龙头实际水源与第三方提示分离的排错经验。明确区分已获玩家确认的卡片显示和仍待复测的效果修复。
+
+仓库附[人脉升级Skill](skills/probably-stolen-network-upgrades/SKILL.md)，可将该文件夹安装到支持Skill的Agent目录；这是聚焦人脉升级的独立指导，不包含私人工程路径或游戏源码。
 
 ## 更新与其他源码
 

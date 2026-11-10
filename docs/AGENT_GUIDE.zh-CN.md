@@ -32,6 +32,8 @@
 
 需要找具体经验时，使用`search_source(query="输入焦点", corpus="practice")`等。不要把practice命中解释成官方文档或游戏本体实现。
 
+涉及王尔德人脉升级，先调用`development_guide(topic="network")`。当前本机AddNetworkUpgrade会触及PlayerStore，主菜单直接注册曾导致空引用，应在载入／新局就绪后注册。分别检查卡片、购买、真实效果和提示的数据来源；购买前旧档不含后来的购买。详情与验证边界均在返回的practice中，独立Skill位于skills/probably-stolen-network-upgrades。
+
 ## 具体例子
 
 用户：“做一个能放物品的展示柜。”
